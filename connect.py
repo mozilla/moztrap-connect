@@ -1,7 +1,8 @@
 import requests
 
-class CCConnect:
-    def __init__(self, host, username, password):
+class Connect:
+    def __init__(self, host, username, password, DEBUG=0):
+        self.DEBUG = DEBUG
         self.host = host
         self.auth = (username, password)
         # ping the host to make sure it's valid?
@@ -21,16 +22,16 @@ class CCConnect:
     """
     def get_tests(self, product, test_cycle, test_run):
         '''Return a list of test result objects.  Pass/Fail can be applied to them'''
-    
+
         # may need to do individual calls to fetch the ids of the product, cycle and run?
-    
+
         get_tests_url = "%s/included_test_results?product=%s&cycle=%s&run=%s" % ("host", "product", "test_cycle", "test_run")
 
         r = requests.get(get_tests_url, auth=self.auth)
         assert r.status_code == 200
-    
+
         return r.content
-    
+
     """
         Sample submission values:
         {"productId": 6,
@@ -44,11 +45,13 @@ class CCConnect:
          "environment": {"category1": "value1", "category2": "value2", "category3": "value3"}
          }
         """
-    def set_results(self, tests, environment):
+    def submit_results(self, tests, environment):
         '''Submit the tests back to the system with results.  Results are not required for any of the tests.  '''
         test_result_list
-        set_results_url = "%s/submit_results?product=%s&cycle=%s&run=%s" % (self.host, product, test_cycle, test_run)
-    
+        set_results_url = "%s/submit_results" % (self.host)
+
+        if DEBUG:
+            print "host=%s" % self.host
+
         r = requests.post(get_tests_url, data=tests, auth=self.auth)
         assert r.status_code == 200
-    
