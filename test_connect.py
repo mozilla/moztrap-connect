@@ -27,7 +27,3 @@ class TestConnect:
         print "id: {0}".format(self.connect.get_environment_id(run_id=1, element_list=["Chrome", "Mandarin", "OS X"]))
 
 
-"""
-1. query for
-
-"""
