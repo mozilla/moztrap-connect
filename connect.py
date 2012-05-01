@@ -109,7 +109,7 @@ class Connect:
 
         """
 
-        data = {"cases": test_cases,
+        data = {"results": [x.result for x in test_cases],
                 "environment": environment,
                 }
 
@@ -128,17 +128,13 @@ class Connect:
 
 
 class TestCase(object):
-    FAIL = "fail"
-    PASS = "pass"
-    INVALID = "invalid"
-    PENDING = "pending"
 
     def __init__(self, data):
         self.name = data["name"]
         self.id = data["id"]
         self.prefix_id = data["prefix_id"]
         self.description = data["description"]
-        self.state = {"result": TestCase.PENDING}
+        self.result = TestResult(self.id)
 
 
     def __str__(self):
@@ -152,21 +148,50 @@ class TestCase(object):
 
 
     def markpass(self):
-        self.state = {"result": TestCase.PASS}
+        self.result.markpass()
 
 
     def markfail(self, comment, bug_url=None):
-        self.state = {
-            "result": TestCase.FAIL,
-            "comment": comment,
-            "bug_url": bug_url,
-            }
+        self.result.markfail(comment, bug_url)
+
 
     def markinvalid(self, comment):
-        self.state = {
-            "result": TestCase.INVALID,
-            "comment": comment,
-            }
+        self.result.markinvalid(comment)
+
+
+
+class TestResult(object):
+    FAIL = "fail"
+    PASS = "pass"
+    INVALID = "invalid"
+    PENDING = "pending"
+
+
+    def __init__(self, caseversion_id, state=self.PENDING, comment=None, bug_url=None):
+        self.caseversion_id = caseversion_id
+        self.state = state
+        self.comment = comment
+        self.bug_url = bug_url
+
+
+    def markpass(self):
+        self.state = TestCase.PASS
+        self.comment = None
+        self.bug_url = None
+
+
+    def markfail(self, comment, bug_url=None):
+        self.state = TestCase.FAIL
+        self.comment = comment
+        self.bug_url = bug_url
+
+
+    def markinvalid(self, comment):
+        self.state = TestCase.INVALID
+        self.comment = comment
+        self.bug_url = None
+
+
 
 class EnvironmentDoesNotExistException(Exception):
     pass
