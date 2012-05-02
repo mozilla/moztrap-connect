@@ -86,64 +86,62 @@ class Connect:
 
         return env_id
 
-    def get_tests(self, run_id):
+    def get_tests(self, run_id, environment_id):
         """
         Return a list of TestCase objects.  Pass/Fail/Invalid is set on each
-        object in the list.
+        object in the list.  The list of environments is filtered by the
+        environment, just as it would be in the UI of MozTrap.
 
         """
 
-        r = requests.get("http://{0}/api/v1/runcases/{1}?format=json".format(
+        r = requests.get("http://{0}/api/v1/runcases/{1}?format=json&environment_id={2}".format(
             self.host,
             run_id,
+            environment_id
             ))
         assert r.status_code == 200
 
-        return [TestCase(x) for x in loads(r.text)["cases"]]
+        return [TestCase(x, environment_id) for x in loads(r.text)["cases"]]
 
 
-    def post_results(self, test_cases, environment, auth):
+    def post_results(self, test_cases, auth):
         """
         Submit the tests back to the system with results.
         Results are not required for any of the tests.
 
         """
 
-        data = {"results": [x.result for x in test_cases],
-                "environment": environment,
-                }
-
-        if DEBUG:
-            print "host={0}".format(self.host)
+        data = {"results": [x.result for x in test_cases]}
 
         r = requests.post(
-            "http://{0}/api/v1/runresults/{1}?format=json".format(
+            "http://{0}/api/v1/results/?format=json&run_id={1}".format(
                 self.host,
                 run_id,
                 ),
-            data=loads(data), auth=auth,
-        )
+            data=loads(data),
+            auth=auth,
+            )
         assert r.status_code == 200
 
 
 
 class TestCase(object):
 
-    def __init__(self, data):
+    def __init__(self, data, environment_id):
         self.name = data["name"]
         self.id = data["id"]
         self.prefix_id = data["prefix_id"]
         self.description = data["description"]
-        self.result = TestResult(self.id)
+        self.result = TestResult(self.id, environment_id)
 
 
     def __str__(self):
-        return "<TestCase - name: {0}, id: {1}, prefix_id: {2}, description: {3}, state: {4}".format(
+        return "<TestCase - name: {0}, id: {1}, prefix_id: {2}, description: {3}, result: {4}".format(
             self.name,
             str(self.id),
             str(self.prefix_id),
             self.description,
-            str(self.state),
+            str(self.result),
         )
 
 
@@ -161,14 +159,15 @@ class TestCase(object):
 
 
 class TestResult(object):
-    FAIL = "fail"
-    PASS = "pass"
-    INVALID = "invalid"
+    FAIL = "failed"
+    PASS = "passed"
+    INVALID = "invalidated"
     PENDING = "pending"
 
 
     def __init__(self, caseversion_id, state=self.PENDING, comment=None, bug_url=None):
         self.caseversion_id = caseversion_id
+        self.environment_id = environment_id
         self.state = state
         self.comment = comment
         self.bug_url = bug_url
