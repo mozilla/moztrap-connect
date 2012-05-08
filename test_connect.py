@@ -25,5 +25,14 @@ class TestConnect:
     def test_get_environment_id(self):
         #print connect.get_environments(run_id=1)
         print "id: {0}".format(self.connect.get_environment_id(run_id=1, element_list=["Chrome", "Mandarin", "OS X"]))
+        assert False, "test not yet implemented"
 
+    def test_submit_in_two_parts(self):
+        """
+        Test that you can submit for a user/run/env the first 3 results, then
+        submit just the second 3 results and not have it blow away the first.
 
+        Existing results should be downloaded with test cases, if they already
+        exist.
+        """
+        assert False, "test not yet implemented"

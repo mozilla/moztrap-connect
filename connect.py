@@ -1,6 +1,6 @@
 import requests
 from urllib import urlencode
-from json import loads
+from json import loads, dumps
 
 class Connect:
     """
@@ -15,11 +15,69 @@ class Connect:
         only option.
 
     """
-    def __init__(self, host, username, password, DEBUG=0):
+    def __init__(self, host, username, api_key, DEBUG=0):
         self.DEBUG = DEBUG
         self.host = host
-        self.auth = (username, password)
+        self.auth = {"username": username, "api_key": api_key}
+        self.url_root = "http://{0}/api/v1".format(self.host)
         # ping the host to make sure it's valid?
+
+
+    def get_params(self, dict={}):
+        """
+        Encode the dict of params and add the format param.
+        It's always JSON.
+        """
+
+        dict["format"] = "json"
+        dict.update(self.auth)
+        return urlencode(dict)
+
+
+    def do_get(self, url_part, params={}):
+        r = requests.get("{0}/{1}?{2}".format(
+            self.url_root,
+            url_part,
+            self.get_params(params),
+            ))
+        return r
+
+
+    def do_post(self, url_part, data_obj, params={}):
+        url = "{0}/{1}/?{2}".format(
+            self.url_root,
+            url_part,
+            self.get_params(params))
+
+        r = requests.post(
+            url,
+            data=dumps(data_obj),
+            headers = {"content-type": "application/json"},
+            )
+        return r
+
+
+    def do_patch(self, url_part, data_obj, params={}):
+        url = "{0}/{1}/?{2}".format(
+            self.url_root,
+            url_part,
+            self.get_params(params))
+
+        r = requests.patch(
+            url,
+            data=dumps(data_obj),
+            headers = {"content-type": "application/json"},
+            )
+        return r
+
+    def do_put(self, url_part, data_obj, params={}):
+        url = "{0}/{1}/?{2}".format(
+            self.url_root,
+            url_part,
+            self.get_params(params))
+
+        r = requests.put(url, data=dumps(data_obj))
+        return r
 
 
     def get_runs(self, **kwargs):
@@ -37,11 +95,7 @@ class Connect:
             params["productversion__version"] = kwargs.pop("productversion")
 
 
-        r = requests.get(
-            "http://{0}/api/v1/run?format=json&{1}".format(
-                self.host,
-                urlencode(params),
-                ))
+        r = self.do_get("run", params=params)
         return loads(r.text)
 
 
@@ -51,14 +105,15 @@ class Connect:
 
         """
 
-        r = requests.get(
-            "http://{0}/api/v1/runenvironments/{1}?format=json".format(
-                self.host,
-                run_id,
-                ))
+        r = self.do_get("runenvironments/{0}".format(run_id))
         assert r.status_code == 200
 
-        return loads(r.text)["environments"]
+        env_list = loads(r.text)["environments"]
+
+        for env in env_list:
+            env["elements"] = [x["name"] for x in env.pop("elements")]
+
+        return env_list
 
 
     def get_environment_id(self, run_id, element_list):
@@ -75,7 +130,7 @@ class Connect:
 
         try:
             env_id = next(item["id"] for item in envs if
-                exp_env == set(item["environment"]))
+                exp_env == set(item["elements"]))
 
         except:
             raise EnvironmentDoesNotExistException(
@@ -86,109 +141,118 @@ class Connect:
 
         return env_id
 
-    def get_tests(self, run_id, environment_id):
+
+    def get_testcases(self, run_id, environment_id):
         """
         Return a list of TestCase objects.  Pass/Fail/Invalid is set on each
         object in the list.  The list of environments is filtered by the
         environment, just as it would be in the UI of MozTrap.
 
         """
+        params = {"caseversion__environments": environment_id, "run": run_id}
+        r = self.do_get("runcaseversion", params)
+        assert r.status_code == 200, r.text
 
-        r = requests.get("http://{0}/api/v1/runcases/{1}?format=json&environment_id={2}".format(
-            self.host,
-            run_id,
-            environment_id
-            ))
-        assert r.status_code == 200
-
-        return [TestCase(x, environment_id) for x in loads(r.text)["cases"]]
+        return [TestCase(x) for x in loads(r.text)["objects"]]
 
 
-    def post_results(self, test_cases, auth):
+    def post_results(self, testcase_list):
         """
         Submit the tests back to the system with results.
         Results are not required for any of the tests.
 
         """
 
-        data = {"results": [x.result for x in test_cases]}
+        results = [x.result for x in testcase_list if x.result != None]
 
-        r = requests.post(
-            "http://{0}/api/v1/results/?format=json&run_id={1}".format(
-                self.host,
-                run_id,
-                ),
-            data=loads(data),
-            auth=auth,
+#        results = {
+#            "run": "/api/v1/run/{0}/".format(run_id),
+#            "environment": "/api/v1/environment/{0}/".format(env_id),
+#            "results": [x.result.data for x in test_cases if x.not_pending()],
+#            }
+
+        #assert False, dumps(results)
+        r = self.do_patch(
+            "result",
+            data_obj={"objects": results},
             )
-        assert r.status_code == 200
+
+#        assert r.status_code == 200, r.text
+
+        return r
+
+
+    def get_results(self, run_id, environment_id):
+
+        r = self.do_get("result", {"runcaseversion__run": run_id, "environment": environment_id})
+        return loads(r.text)
 
 
 
 class TestCase(object):
+    """
+    A test case that can be given a result.
 
-    def __init__(self, data, environment_id):
-        self.name = data["name"]
-        self.id = data["id"]
-        self.prefix_id = data["prefix_id"]
-        self.description = data["description"]
-        self.result = TestResult(self.id, environment_id)
+    It holds the data downloaded from the client, and
+    provides methods for marking pass, fail, invalid
+
+    @@@ Carl: with something like this, should it actually extend a dictionary
+    and add the special methods in?
+
+    results objects look like this:
+    {
+        "environment": 33,
+        "runcaseversion": 2,
+        "tester": 1,
+        "status": "failed",
+        "comment": "from connector",
+        "stepnumber": 2,
+        "bug": "",
+    }
+
+    """
+
+    def __init__(self, data):
+        self.data = data
+        self.result = None
 
 
     def __str__(self):
-        return "<TestCase - name: {0}, id: {1}, prefix_id: {2}, description: {3}, result: {4}".format(
-            self.name,
-            str(self.id),
-            str(self.prefix_id),
-            self.description,
+        return "<TestCase - {0}, result: {1}".format(
+            str(self.data),
             str(self.result),
         )
 
 
-    def markpass(self):
-        self.result.markpass()
+    def finishsucceed(self, tester, environment):
+        self.result = {
+            "environment": environment,
+            "runcaseversion": self.data["id"],
+            "tester": tester,
+            "status": "passed",
+        }
 
 
-    def markfail(self, comment, bug_url=None):
-        self.result.markfail(comment, bug_url)
+    def finishfail(self, tester, environment, comment, stepnumber, bug=None):
+        self.result = {
+            "environment": environment,
+            "runcaseversion": self.data["id"],
+            "tester": tester,
+            "status": "failed",
+            "comment": comment,
+            "stepnumber": stepnumber,
+            "bug": bug,
+            }
 
 
-    def markinvalid(self, comment):
-        self.result.markinvalid(comment)
-
-
-
-class TestResult(object):
-    FAIL = "failed"
-    PASS = "passed"
-    INVALID = "invalidated"
-    PENDING = "pending"
-
-
-    def __init__(self, caseversion_id, state=self.PENDING, comment=None, bug_url=None):
-        self.caseversion_id = caseversion_id
-        self.environment_id = environment_id
-        self.state = state
-        self.comment = comment
-        self.bug_url = bug_url
-
-
-    def markpass(self):
-        self.state = TestCase.PASS
-        self.comment = None
-        self.bug_url = None
-
-
-    def markfail(self, comment, bug_url=None):
-        self.state = TestCase.FAIL
-        self.comment = comment
-        self.bug_url = bug_url
-
-
-    def markinvalid(self, comment):
-        self.state = TestCase.INVALID
-        self.comment = comment
-        self.bug_url = None
+    def finishinvalidate(self, tester, environment, comment):
+        self.result = {
+            "environment": environment,
+            "runcaseversion": self.data["id"],
+            "tester": tester,
+            "status": "invalidated",
+            "comment": comment,
+            }
 
 
 
