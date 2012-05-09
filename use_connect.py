@@ -60,5 +60,5 @@ tests[2].finishinvalidate(
 
 #print "\n".join([str((x.data["name"], str(x.result.state))) for x in tests])
 
-r = connect.post_results(tests)
+r = connect.submit_results(tests)
 print r.text

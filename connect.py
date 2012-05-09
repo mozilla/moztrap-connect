@@ -14,6 +14,10 @@ class Connect:
         to keep track of which case id applies to which env?  Perhaps the
         only option.
 
+        Best approach is that the test framework, when executing a test that is
+        different for two different environments, should map the environment
+        they're executing in to the case id they expect.
+
     """
     def __init__(self, host, username, api_key, DEBUG=0):
         self.DEBUG = DEBUG
@@ -34,50 +38,23 @@ class Connect:
         return urlencode(dict)
 
 
+    def get_url(self, url_part, params={}):
+        return "{0}/{1}/?{2}".format(
+            self.url_root, url_part, self.get_params(params))
+
+
     def do_get(self, url_part, params={}):
-        r = requests.get("{0}/{1}?{2}".format(
-            self.url_root,
-            url_part,
-            self.get_params(params),
-            ))
-        return r
-
-
-    def do_post(self, url_part, data_obj, params={}):
-        url = "{0}/{1}/?{2}".format(
-            self.url_root,
-            url_part,
-            self.get_params(params))
-
-        r = requests.post(
-            url,
-            data=dumps(data_obj),
-            headers = {"content-type": "application/json"},
-            )
-        return r
+        return requests.get(self.get_url(url_part, params))
 
 
     def do_patch(self, url_part, data_obj, params={}):
-        url = "{0}/{1}/?{2}".format(
-            self.url_root,
-            url_part,
-            self.get_params(params))
+        url = self.get_url(url_part, params)
 
-        r = requests.patch(
+        return requests.patch(
             url,
             data=dumps(data_obj),
             headers = {"content-type": "application/json"},
             )
-        return r
-
-    def do_put(self, url_part, data_obj, params={}):
-        url = "{0}/{1}/?{2}".format(
-            self.url_root,
-            url_part,
-            self.get_params(params))
-
-        r = requests.put(url, data=dumps(data_obj))
-        return r
 
 
     def get_runs(self, **kwargs):
@@ -116,20 +93,27 @@ class Connect:
         return env_list
 
 
-    def get_environment_id(self, run_id, element_list):
+    def get_environment_id(self, element_list, run_id=None, env_list=None):
         """
-        Return a single environment id for the specified test run that
-        matches the element_list of strings.
+        Return a single environment id.
 
-        @@@ This is probably more efficiently handled on the server in a
-        different endpoint
+        You have two options for getting this:
+
+        1. supply a run_id and no env_list, and this will call
+        the client to find this for you
+        2. supply an env_list and no run_id and this will search through the
+        env_list for the environment you're seeking
+
         """
 
-        envs = self.get_environments(run_id)
+        if not env_list:
+            assert run_id, "You must supply either a run_id, or an env_list."
+            env_list = self.get_environments(run_id)
+
         exp_env = set(element_list)
 
         try:
-            env_id = next(item["id"] for item in envs if
+            env_id = next(item["id"] for item in env_list if
                 exp_env == set(item["elements"]))
 
         except:
@@ -156,7 +140,7 @@ class Connect:
         return [TestCase(x) for x in loads(r.text)["objects"]]
 
 
-    def post_results(self, testcase_list):
+    def submit_results(self, testcase_list):
         """
         Submit the tests back to the system with results.
         Results are not required for any of the tests.
@@ -165,28 +149,13 @@ class Connect:
 
         results = [x.result for x in testcase_list if x.result != None]
 
-#        results = {
-#            "run": "/api/v1/run/{0}/".format(run_id),
-#            "environment": "/api/v1/environment/{0}/".format(env_id),
-#            "results": [x.result.data for x in test_cases if x.not_pending()],
-#            }
-
-        #assert False, dumps(results)
         r = self.do_patch(
             "result",
             data_obj={"objects": results},
             )
 
-#        assert r.status_code == 200, r.text
-
+        assert r.status_code == 202, r.text
         return r
-
-
-    def get_results(self, run_id, environment_id):
-
-        r = self.do_get("result", {"runcaseversion__run": run_id, "environment": environment_id})
-        return loads(r.text)
-
 
 
 class TestCase(object):
