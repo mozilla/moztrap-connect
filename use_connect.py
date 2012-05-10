@@ -17,11 +17,14 @@ post those results
 
 
 
-connect = Connect("localhost:8000", "camd", "camd")
+connect = Connect("localhost:8000", "camd", "abc123", DEBUG=True)
 
 
 runs = connect.get_runs(product="MozTrap")
-print jstr(runs)
+#print jstr(runs)
+
+
+
 
 
 env = connect.get_environments(run_id=1)
@@ -34,12 +37,10 @@ env_id = connect.get_environment_id(
     )
 print "\nenv_id: {0}".format(env_id)
 
-#results = connect.get_results(1, 33)
-#print jstr(results.text)
+
 
 tests = connect.get_testcases(run_id=1, environment_id=env_id)
-print jstr([x.data for x in tests])
-
+#print jstr([x.data for x in tests])
 
 tests[0].finishsucceed(
     tester=1,
@@ -58,7 +59,8 @@ tests[2].finishinvalidate(
     comment="why u no make sense?",
     )
 
-#print "\n".join([str((x.data["name"], str(x.result.state))) for x in tests])
+
+
 
 r = connect.submit_results(tests)
-print r.text
+#print r.text

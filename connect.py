@@ -19,12 +19,11 @@ class Connect:
         they're executing in to the case id they expect.
 
     """
-    def __init__(self, host, username, api_key, DEBUG=0):
+    def __init__(self, host, username, api_key, DEBUG=False):
         self.DEBUG = DEBUG
         self.host = host
         self.auth = {"username": username, "api_key": api_key}
         self.url_root = "http://{0}/api/v1".format(self.host)
-        # ping the host to make sure it's valid?
 
 
     def get_params(self, dict={}):
@@ -39,8 +38,12 @@ class Connect:
 
 
     def get_url(self, url_part, params={}):
-        return "{0}/{1}/?{2}".format(
+        url = "{0}/{1}/?{2}".format(
             self.url_root, url_part, self.get_params(params))
+        if self.DEBUG:
+            print "URL: {0}".format(url)
+
+        return url
 
 
     def do_get(self, url_part, params={}):
@@ -81,8 +84,7 @@ class Connect:
         Return a list of environments for the specified test run.
 
         """
-
-        r = self.do_get("runenvironments/{0}".format(run_id))
+        r = self.do_get("run/{0}".format(run_id))
         assert r.status_code == 200
 
         env_list = loads(r.text)["environments"]
@@ -154,7 +156,7 @@ class Connect:
             data_obj={"objects": results},
             )
 
-        assert r.status_code == 202, r.text
+        assert r.status_code == 202, r
         return r
 
 
