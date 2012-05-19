@@ -2,24 +2,54 @@ This is a collection of connectors that can be used to communicate with
 Case Conductor.  This is an easier way for external automation tools to provide
 results to Case Conductor than to use the REST API directly.
 
+Notes:
+on cmd line specify:
+product,
+product version - need endpoint for all productversions for the product
+environment - need endpoint for all environments for the productversion
+tests submit (case_id, pass/fail/invalid, comment, step_number=1, bugurl=None)
+
+after submit results, return a link to the "view results" for that test run
+get list of test cases (product version, environment) with tags
+
+create a new testrun for these tests per environment.  don't need to blend them
+for multiple environments
+
+return a results url for the run in moztrap
+
+
+
+
 Authentication
 --------------
 
-- Login::
-
-    login(username, password)
-
-- Logout::
-
-    logout(username, password)
-
+You will need an API key from MozTrap to use this connector.  You may have a
+user in MozTrap that is specifically an "automation bot" that uses this API
+key to submit results, or it could be any other user, too.  Ask your MozTrap
+admin to generate an API key and provide it to you.
 
 GET
 ---
 
+- List of Products with their productversions.  Filterable by Product
+name::
+
+    get_products(name)
+
+
+- List of Environments for a Product Version::
+
+    get_product_environments(productversion_id)
+
+
+- List of CaseVersions for a Product Version and environment::
+
+    get_product_cases(productversion_id, environment_id)
+
+
 - List of Test Runs::
 
-    get_runs(product, product_version)
+    get_runs(productversion_id)
 
     - **return**::
 
@@ -43,7 +73,7 @@ GET
 
 - Test cases for specific test run::
 
-    get_cases(run_id)
+    get_run_cases(run_id)
 
     - **return**::
 
@@ -71,63 +101,43 @@ GET
             "resource_uri": "/api/v1/runcases/1/"
         }
 
-- Environments for specific test run::
+- Environments for a test run::
 
-    get_environments(run_id)
+    get_run_environments(run_id)
 
     - **return**::
 
-{
+    {
 
-    "description": "test run description",
-    "environments": [
-        {
-            "environment": [
-                "Chrome",
-                "Mandarin",
-                "Windows"
-            ],
-            "id": 1
-        },
-        {
-            "environment": [
-                "Chrome",
-                "Mandarin",
-                "OS X"
-            ],
-            "id": 2
-        },
-        {
-            "environment": [
-                "Chrome",
-                "Linux",
-                "Mandarin"
-            ],
-            "id": 3
-        },
-        {
-            "environment": [
-                "English",
-                "OS X",
-                "Safari"
-            ],
-            "id": 45
-        }
-    ],
-    "id": "1",
-    "name": "Alpha 1",
-    "resource_uri": "/api/v1/runenvironments/1/"
+        "description": "test run description",
+        "environments": [
+            {
+                "environment": [
+                    "Chrome",
+                    "Mandarin",
+                    "Windows"
+                ],
+                "id": 1
+            },
+            {
+                "environment": [
+                    "Chrome",
+                    "Mandarin",
+                    "OS X"
+                ],
+                "id": 2
+            }
+        ],
+        "id": "1",
+        "name": "Alpha 1",
+        "resource_uri": "/api/v1/runenvironments/1/"
 
-}
+    }
 
 POST
 ----
 
-- Clone existing run::
-
-    clone_run(run_id, new_name)
-
 - Submit test results::
 
-    submit_results(case_list)
+    submit_new_run_results(productversion_id, environment_id, result_list)
 

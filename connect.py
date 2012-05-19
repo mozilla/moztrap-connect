@@ -18,13 +18,26 @@ class Connect:
         different for two different environments, should map the environment
         they're executing in to the case id they expect.
 
+    @@@ TODO Talk to Dave Hunt about how he wants to use the connector
+        1. What info would he like to have
+        2. Would he like to create a testrun on the fly based on just a list of
+           test cases?
+        3. Is the current list of methods good?
+
+
+    @@@ TODO Need to be able to create TestCase objects with just a case ID
+        Then add that to a list and submit that in a testrun that never
+        existed in MozTrap before.  The server will just take that list of
+        cases, build a set of runcaseversions on a new run out of it and take
+        in the results.
     """
-    def __init__(self, host, username, api_key, DEBUG=False):
+    def __init__(self, protocol, host, username, api_key, DEBUG=False):
         self.DEBUG = DEBUG
+        self.protocol = protocol
         self.host = host
         self.auth = {"username": username, "api_key": api_key}
-        self.url_root = "http://{0}/api/v1".format(self.host)
-
+        self.url_root = "{0}://{1}".format(protocol, self.host)
+        self.uri_root = "api/v1"
 
     def get_params(self, dict={}):
         """
@@ -37,27 +50,75 @@ class Connect:
         return urlencode(dict)
 
 
-    def get_url(self, url_part, params={}):
-        url = "{0}/{1}/?{2}".format(
-            self.url_root, url_part, self.get_params(params))
+    def get_uri(self, resource_name, id=None):
+        uri = "/{0}/{1}/".format(self.uri_root, resource_name)
+        if id:
+            uri = "{0}{1}/".format(uri, id)
+        return uri
+
+
+    def get_url(self, uri, params={}):
+        url = "{0}{1}?{2}".format(
+            self.url_root, uri, self.get_params(params))
         if self.DEBUG:
             print "URL: {0}".format(url)
 
         return url
 
 
-    def do_get(self, url_part, params={}):
-        return requests.get(self.get_url(url_part, params))
+    def do_get(self, resource, id=None, params={}):
+        url = self.get_url(self.get_uri(resource, id), params)
+        res = requests.get(url)
+        print(res.text)
+        res.raise_for_status()
+        return res
 
 
-    def do_patch(self, url_part, data_obj, params={}):
-        url = self.get_url(url_part, params)
+    def do_patch(self, resource, data_obj, params={}):
+        url = self.get_url(self.get_uri(resource), params)
 
-        return requests.patch(
+        res = requests.patch(
             url,
             data=dumps(data_obj),
             headers = {"content-type": "application/json"},
             )
+        res.raise_for_status()
+        return res
+
+
+    def do_post(self, resource, data_obj, params={}):
+        url = self.get_url(self.get_uri(resource), params)
+
+        print(dumps(data_obj, sort_keys=True, indent=4))
+
+        res = requests.post(
+            url,
+            data=dumps(data_obj),
+            headers = {"content-type": "application/json"},
+            )
+        print res.text
+        res.raise_for_status()
+        return res
+
+
+    #######################
+    # connector APIs
+    #######################
+
+    def get_products(self, name=None):
+        """
+        Return a list of Products with their productversions.
+
+        name - Filter by Product name
+
+        """
+        params = {}
+        if name:
+            params["name"] = name
+
+        r = self.do_get(self.get_uri("product"), params=params)
+        return loads(r.text)
+
 
 
     def get_runs(self, **kwargs):
@@ -79,13 +140,12 @@ class Connect:
         return loads(r.text)
 
 
-    def get_environments(self, run_id):
+    def get_run_environments(self, run_id):
         """
         Return a list of environments for the specified test run.
 
         """
-        r = self.do_get("run/{0}".format(run_id))
-        assert r.status_code == 200
+        r = self.do_get("run", id=run_id)
 
         env_list = loads(r.text)["environments"]
 
@@ -93,6 +153,31 @@ class Connect:
             env["elements"] = [x["name"] for x in env.pop("elements")]
 
         return env_list
+
+
+    def get_product_environments(self, productversion_id):
+        """
+        Return a list of environments for the specified product version.
+
+        """
+        r = self.do_get("productversionenvironments", id=productversion_id)
+
+        return loads(r.text)["environments"]
+
+
+    def get_product_cases(self, productversion_id, environment_id=None):
+        """
+        Return a list of test cases for the specified product version and
+        environment (optional).
+
+        """
+        params = {"productversion": productversion_id}
+        if environment_id:
+            params["environments"] = environment_id
+
+        r = self.do_get("caseversion", params=params)
+
+        return loads(r.text)["objects"]
 
 
     def get_environment_id(self, element_list, run_id=None, env_list=None):
@@ -128,7 +213,7 @@ class Connect:
         return env_id
 
 
-    def get_testcases(self, run_id, environment_id):
+    def get_run_cases(self, run_id, environment_id):
         """
         Return a list of TestCase objects.  Pass/Fail/Invalid is set on each
         object in the list.  The list of environments is filtered by the
@@ -137,44 +222,95 @@ class Connect:
         """
         params = {"caseversion__environments": environment_id, "run": run_id}
         r = self.do_get("runcaseversion", params)
-        assert r.status_code == 200, r.text
 
         return [TestCase(x) for x in loads(r.text)["objects"]]
 
 
-    def submit_results(self, testcase_list):
+    def get_results(self, testcase_list):
+        return [x.result for x in testcase_list if x.result != None]
+
+
+    def submit_results(self, testcase_list=None, result_list=None):
         """
         Submit the tests back to the system with results.
         Results are not required for any of the tests.
 
+        You must supply either a testcase_list OR a result_list.  If both
+        are supplied, it will use the result_list and ignore the testcase_list.
+
         """
 
-        results = [x.result for x in testcase_list if x.result != None]
+        (assertresult_list or testcase_list,
+            "You must supply either a result_list or a testcase_list")
 
-        r = self.do_patch(
-            "result",
-            data_obj={"objects": results},
-            )
-
-        assert r.status_code == 202, r
-        return r
+        if not result_list:
+            result_list = self.get_results(testcase_list)
 
 
-class TestCase(object):
+        res = self.do_patch("result", data_obj={"objects": result_list})
+
+        return res
+
+
+    def submit_run(self, name, description, productversion_id, testresults):
+        """
+        Creates a new testrun based on the productversion and TestResults.
+
+        Pass in a TestResult object with test results for case ids that match
+        cases in MozTrap.  This can be a list of objects that are a environment
+        and a list of results.  So you could run the cases over several
+        environments and build a whole test run that shows coverage for all of
+        that.
+
+
+        "productversion": 3,
+        "name": "my run name",
+        "description": "my run desc",
+        "results": [
+            {
+            "environment": 3,
+            "case": 1,
+            "status": "failed",
+            "comment": "from connector",
+            "stepnumber": 2,
+            "bug": "http://bugzilla.mozilla.org/432432",
+            },
+            {
+            "environment": 3,
+            "case_id": 2,
+            "status": "failed",
+            "comment": "from connector",
+            "stepnumber": 2,
+            "bug": "http://bugzilla.mozilla.org/432432",
+            }]},
+        """
+
+        env_uris = [self.get_uri("environment", x) for x
+                    in set(testresults.environments)]
+
+        data_obj = {
+            "productversion": self.get_uri("productversion", productversion_id),
+            "name": name,
+            "description": description,
+            "environments": env_uris,
+            "runcaseversions": testresults.results,
+            "status": "active",
+            }
+
+        res = self.do_post("run", data_obj=data_obj)
+        return res
+
+
+
+
+class TestResults(object):
     """
-    A test case that can be given a result.
+    A holder for results of each test.
 
-    It holds the data downloaded from the client, and
-    provides methods for marking pass, fail, invalid
-
-    @@@ Carl: with something like this, should it actually extend a dictionary
-    and add the special methods in?
-
-    results objects look like this:
+    results objects look like this on upload:
     {
         "environment": 33,
-        "runcaseversion": 2,
-        "tester": 1,
+        "case": 2,
         "status": "failed",
         "comment": "from connector",
         "stepnumber": 2,
@@ -183,47 +319,59 @@ class TestCase(object):
 
     """
 
-    def __init__(self, data):
-        self.data = data
-        self.result = None
+    def __init__(self):
+        self.results = []
+        self.environments = []
 
 
-    def __str__(self):
-        return "<TestCase - {0}, result: {1}".format(
-            str(self.data),
-            str(self.result),
-        )
+    def addpass(
+            self,
+            case_id,
+            environment_id,
+            ):
 
-
-    def finishsucceed(self, tester, environment):
-        self.result = {
-            "environment": environment,
-            "runcaseversion": self.data["id"],
-            "tester": tester,
+        self.environments.append(environment_id)
+        self.results.append({
+            "environment": environment_id,
+            "case": case_id,
             "status": "passed",
-        }
+            })
 
 
-    def finishfail(self, tester, environment, comment, stepnumber, bug=None):
-        self.result = {
-            "environment": environment,
-            "runcaseversion": self.data["id"],
-            "tester": tester,
+    def addfail(
+            self,
+            case_id,
+            environment_id,
+            comment,
+            stepnumber=0,
+            bug=None,
+            ):
+
+        self.environments.append(environment_id)
+        self.results.append({
+            "environment": environment_id,
+            "case": case_id,
             "status": "failed",
             "comment": comment,
             "stepnumber": stepnumber,
             "bug": bug,
-            }
+            })
 
 
-    def finishinvalidate(self, tester, environment, comment):
-        self.result = {
-            "environment": environment,
-            "runcaseversion": self.data["id"],
-            "tester": tester,
+    def addinvalid(
+            self,
+            case_id,
+            environment_id,
+            comment,
+            ):
+
+        self.environments.append(environment_id)
+        self.results.append({
+            "environment": environment_id,
+            "case": case_id,
             "status": "invalidated",
             "comment": comment,
-            }
+            })
 
 
 
