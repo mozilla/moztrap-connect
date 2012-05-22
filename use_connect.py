@@ -1,6 +1,6 @@
 #!python
 
-from connect import Connect, TestResults
+from mtconnect.connect import Connect, TestResults
 import json
 import datetime
 

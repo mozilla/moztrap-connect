@@ -1,6 +1,6 @@
 #!python
 
-from connect import Connect
+from mtconnect.connect import Connect
 #from mock import Mock, patch
 
 class TestConnect:
