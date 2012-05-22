@@ -93,9 +93,9 @@ class Connect:
             print res.text
 
 
-    #######################
-    # connector APIs
-    #######################
+    #######################################
+    # connector APIs for creating a new run
+    #######################################
 
     def get_products(self, name=None):
         """
@@ -110,26 +110,6 @@ class Connect:
 
         r = self.do_get("product", params=params)
         return loads(r.text)["objects"]
-
-
-
-    def get_runs(self, **kwargs):
-        """
-        Return a list of test runs.  This can be filtered by productversion_id.
-
-        """
-
-        r = self.do_get("run", params=kwargs)
-        return loads(r.text)["objects"]
-
-
-    def get_run_environments(self, run_id):
-        """
-        Return a list of environments for the specified test run.
-
-        """
-        r = self.do_get("run", id=run_id)
-        return loads(r.text)["environments"]
 
 
     def get_product_environments(self, productversion_id):
@@ -155,6 +135,59 @@ class Connect:
         r = self.do_get("caseversion", params=params)
 
         return loads(r.text)["objects"]
+
+
+    def submit_run(self, name, description, productversion_id, testresults):
+        """
+        Create a new, active run with results.
+
+        Pass in a TestResults object with test results for case ids that match
+        cases in MozTrap.  This object can contain results for multiple
+        environments.  So you could run the cases over several environments and
+        build a whole test run that shows coverage for all of that.
+
+        Results are not required for any of the tests.
+
+        """
+
+        env_uris = [self.get_uri("environment", x) for x
+                    in set(testresults.environments)]
+
+        data_obj = {
+            "productversion": self.get_uri("productversion", productversion_id),
+            "name": name,
+            "description": description,
+            "environments": env_uris,
+            "runcaseversions": testresults.results,
+            "status": "active",
+            }
+
+        res = self.do_post("run", data_obj=data_obj)
+        return res
+
+
+    #######################################
+    # connector APIs for creating a new run
+    #######################################
+
+
+    def get_runs(self, **kwargs):
+        """
+        Return a list of test runs.  This can be filtered by productversion_id.
+
+        """
+
+        r = self.do_get("run", params=kwargs)
+        return loads(r.text)["objects"]
+
+
+    def get_run_environments(self, run_id):
+        """
+        Return a list of environments for the specified test run.
+
+        """
+        r = self.do_get("run", id=run_id)
+        return loads(r.text)["environments"]
 
 
     def get_run_cases(self, run_id, environment_id):
@@ -190,36 +223,6 @@ class Connect:
         res = self.do_patch("result", data_obj={"objects": results})
 
         return res
-
-
-    def submit_run(self, name, description, productversion_id, testresults):
-        """
-        Create a new, active run with results.
-
-        Pass in a TestResults object with test results for case ids that match
-        cases in MozTrap.  This object can contain results for multiple
-        environments.  So you could run the cases over several environments and
-        build a whole test run that shows coverage for all of that.
-
-        Results are not required for any of the tests.
-
-        """
-
-        env_uris = [self.get_uri("environment", x) for x
-                    in set(testresults.environments)]
-
-        data_obj = {
-            "productversion": self.get_uri("productversion", productversion_id),
-            "name": name,
-            "description": description,
-            "environments": env_uris,
-            "runcaseversions": testresults.results,
-            "status": "active",
-            }
-
-        res = self.do_post("run", data_obj=data_obj)
-        return res
-
 
 
 
