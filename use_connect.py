@@ -50,13 +50,13 @@ def submit_results_ui_way():
     print jstr(runs)
 
     # here pick the run you want
-    run_id=1
+    run_id=runs[0]["id"]
 
     envs = connect.get_run_environments(run_id=run_id)
     print jstr(envs)
 
     # here pick the env you want
-    env_id=23
+    env_id=envs[22]["id"]
 
     tests = connect.get_run_cases(run_id=run_id, environment_id=env_id)
     print jstr(tests)
@@ -98,9 +98,9 @@ def submit_results_auto_way():
     envs = connect.get_product_environments(productversion_id=pv_id)
     print(jstr(envs))
 
-    span_id = 63
-    win_id = 62
-    lin_id = 61
+    lin_id = envs[0]["id"]
+    win_id = envs[1]["id"]
+    span_id = envs[2]["id"]
 
     spancases = connect.get_product_cases(
         productversion_id=pv_id, environment_id=span_id)
@@ -142,6 +142,6 @@ def submit_results_auto_way():
     print(res)
 
 
-getters()
+#getters()
 submit_results_ui_way()
-submit_results_auto_way()
+#submit_results_auto_way()

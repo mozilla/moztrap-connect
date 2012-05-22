@@ -166,9 +166,9 @@ class Connect:
         return res
 
 
-    #######################################
-    # connector APIs for creating a new run
-    #######################################
+    ####################################
+    # connector APIs for an existing run
+    ####################################
 
 
     def get_runs(self, **kwargs):
@@ -227,20 +227,7 @@ class Connect:
 
 
 class TestResults(object):
-    """
-    A holder for results of all tests that can be submitted.
-
-    results objects look like this on upload:
-    {
-        "environment": 33,
-        "case": 2,
-        "status": "failed",
-        "comment": "from connector",
-        "stepnumber": 2,
-        "bug": "",
-    }
-
-    """
+    """A holder for results of all tests that will be submitted."""
 
     def __init__(self):
         self.results = []
@@ -252,6 +239,7 @@ class TestResults(object):
             case_id,
             environment_id,
             ):
+        """Submit a passing result for a test case."""
 
         self.environments.append(environment_id)
         self.results.append({
@@ -269,6 +257,7 @@ class TestResults(object):
             stepnumber=0,
             bug=None,
             ):
+        """Submit a failing result for a test case."""
 
         self.environments.append(environment_id)
         self.results.append({
@@ -287,6 +276,7 @@ class TestResults(object):
             environment_id,
             comment,
             ):
+        """Submit a result for a test case that is invalid or unclear."""
 
         self.environments.append(environment_id)
         self.results.append({
