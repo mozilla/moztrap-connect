@@ -29,30 +29,4 @@ key to submit results, or it could be any other user, too.  Ask your MozTrap
 admin to generate an API key and provide it to you.
 
 
-Create a new run for a Product Version
---------------------------------------
-
-
-``get_products``
-~~~~~~~~~~~~~~~~
-``get_product_environments``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-``get_product_cases``
-~~~~~~~~~~~~~~~~~~~~~
-``submit_run``
-~~~~~~~~~~~~~~
-
-
-Run tests for an existing test run
-----------------------------------
-
-``get_runs``
-~~~~~~~~~~~~
-``get_run_environments``
-~~~~~~~~~~~~~~~~~~~~~~~~
-``get_run_cases``
-~~~~~~~~~~~~~~~~~
-``submit_results``
-~~~~~~~~~~~~~~~~~~
-
 

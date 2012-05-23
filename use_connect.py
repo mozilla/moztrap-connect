@@ -142,6 +142,6 @@ def submit_results_auto_way():
     print(res)
 
 
-#getters()
+getters()
 submit_results_ui_way()
-#submit_results_auto_way()
+submit_results_auto_way()
