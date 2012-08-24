@@ -230,9 +230,12 @@ class TestResults(object):
     """A holder for results of all tests that will be submitted."""
 
     def __init__(self):
-        self.results = []
+        self._results = {}
         self.environments = []
 
+    @property
+    def results(self):
+        return self._results.values()
 
     def addpass(
             self,
@@ -242,12 +245,17 @@ class TestResults(object):
         """Submit a passing result for a test case."""
 
         self.environments.append(environment_id)
-        self.results.append({
-            "environment": environment_id,
-            "case": case_id,
-            "status": "passed",
-            })
-
+        key = environment_id + "_" + case_id
+        if self._results.has_key(key) and self._results[key]['status'] == 'failed':
+            # do not overwrite failure
+            pass
+        else:
+            # allowed to add entry or overwrite invalid
+            self._results[key] = {
+                "environment": environment_id,
+                "case": case_id,
+                "status": "passed",
+                }
 
     def addfail(
             self,
@@ -260,14 +268,20 @@ class TestResults(object):
         """Submit a failing result for a test case."""
 
         self.environments.append(environment_id)
-        self.results.append({
-            "environment": environment_id,
-            "case": case_id,
-            "status": "failed",
-            "comment": comment,
-            "stepnumber": stepnumber,
-            "bug": bug,
-            })
+        key = environment_id + "_" + case_id
+        if self._results.has_key(key) and self._results[key]['status'] == 'failed':
+            # if test case is failed already, append comment
+            self._results[key]['comment'] += "\n%s" % comment
+        else:
+            # add or replace passing / invalid result with the failing one
+            self._results[key] = {
+                "environment": environment_id,
+                "case": case_id,
+                "status": "failed",
+                "comment": comment,
+                "stepnumber": stepnumber,
+                "bug": bug,
+                }
 
 
     def addinvalid(
@@ -279,13 +293,22 @@ class TestResults(object):
         """Submit a result for a test case that is invalid or unclear."""
 
         self.environments.append(environment_id)
-        self.results.append({
-            "environment": environment_id,
-            "case": case_id,
-            "status": "invalidated",
-            "comment": comment,
-            })
-
+        key = environment_id + "_" + case_id
+        if self._results.has_key(key):
+            if self._results[key]['status'] == 'invalidated':
+                # append comment on existing invalid record
+                self._results[key]['comment'] += "\n%s" % comment
+            else:
+                # do not overwrite passing or failing record
+                pass
+        else:
+            # add record
+            self._results[key] = {
+                "environment": environment_id,
+                "case": case_id,
+                "status": "invalidated",
+                "comment": comment,
+               }
 
 
 class EnvironmentDoesNotExistException(Exception):
