@@ -11,21 +11,23 @@ class Connect:
     new results.
 
     """
-    def __init__(self, protocol, host, username, api_key, DEBUG=False):
+    def __init__(self, protocol, host, username, api_key, limit=0, DEBUG=False):
         self.DEBUG = DEBUG
         self.protocol = protocol
         self.host = host
         self.auth = {"username": username, "api_key": api_key}
         self.url_root = "{0}://{1}".format(protocol, self.host)
         self.uri_root = "api/v1"
+        self.limit = limit
 
     def get_params(self, dict={}):
         """
-        Encode the dict of params and add the format param.
+        Encode the dict of params and add the format and limit params.
         It's always JSON.
         """
 
         dict["format"] = "json"
+        dict["limit"] = self.limit
         dict.update(self.auth)
         return urlencode(dict)
 
@@ -111,6 +113,39 @@ class Connect:
         r = self.do_get("product", params=params)
         return loads(r.text)["objects"]
 
+    def get_productversions(self, product=None, version=None, version_id=None):
+        """
+        Return a list of Product Versions.
+
+        ::Args::
+        product - Filter by Product name.
+        version - Filter by Version name.
+        version_id - Filter by Version id.
+
+        ::Raises::
+        InvalidFilterParamsException if neither version_id nor product are provided.
+
+        """
+        if not version_id and not product:
+            raise InvalidFilterParamsException("Either version_id or product is required.")
+
+        products = self.get_products(name=product)
+
+        productversions = []
+        for product in products:
+            for v in product['productversions']:
+                if version or version_id:
+                    if version:
+                        if v['version'] == version:
+                            productversions.append(v)
+                            return productversions
+                    if version_id:
+                        if v['id'] == version_id:
+                            productversions.append(v)
+                            return productversions
+                else:  # no version filters provided
+                    productversions.append(v)
+        return productversions  # this will be empty if the filters were not found
 
     def get_product_environments(self, productversion_id):
         """
@@ -171,23 +206,66 @@ class Connect:
     ####################################
 
 
-    def get_runs(self, **kwargs):
+    def get_runs(self, product=None, version=None, productversion_id=None, name=None, run_id=None):
         """
         Return a list of test runs.  This can be filtered by productversion_id.
 
+        ::Args::
+        product - Filter by product name
+        version - Filter by product version name
+        productversion_id - Filter by product version id
+        name - Filter by run name
+        run_id - Filter by run id
+
+        ::Raises::
+        InvalidFilterParamsException if neither run_id nor productversion_id nor product and version are provided.
+
         """
+        r = None
+        if not run_id:
+            if not productversion_id:
+                if product and version:
+                    productversions = self.get_productversions(product=product, version=version)
+                    if len(productversions) < 1:
+                        raise ProductVersionDoesNotExistException(
+                            "No productversion found matching product=%s and version=%s." % (product, version))
+                    productversion_id = productversions[0]['id']
+                else:
+                    raise InvalidFilterParamsException(
+                        "Either run_id or productversion_id or product and version are required.")
 
-        r = self.do_get("run", params=kwargs)
-        return loads(r.text)["objects"]
+            r = self.do_get("run", params={'productversion_id': productversion_id})
+        else:  # run_id is unique to filter by
+            r = self.do_get("run")
+
+        runs = loads(r.text)["objects"]
+        if name or run_id:
+            for run in runs:
+                if run['name'] == name:
+                    return [run]
+                if run['id'] == run_id:
+                    return [run]
+            return [] # no matches found
+        return runs
 
 
-    def get_run_environments(self, run_id):
+    def get_run_environments(self, run_id, name=None):
         """
         Return a list of environments for the specified test run.
 
+        ::Args::
+        - run_id - run id
+        - name - environment name
+
         """
         r = self.do_get("run", id=run_id)
-        return loads(r.text)["environments"]
+        run_envs = loads(r.text)["environments"]
+        if name:
+            for env in run_envs:
+                for element in env['elements']:
+                    if element['name'] == name:
+                        return [env]
+        return run_envs
 
 
     def get_run_cases(self, run_id, environment_id):
@@ -286,6 +364,15 @@ class TestResults(object):
             "comment": comment,
             })
 
+
+class InvalidFilterParamsException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+
+class ProductVersionDoesNotExistException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
 
 
 class EnvironmentDoesNotExistException(Exception):
