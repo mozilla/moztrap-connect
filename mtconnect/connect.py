@@ -75,6 +75,7 @@ class Connect:
             return res
         except:
             print res.text
+            return res
 
 
     def do_post(self, resource, data_obj, params={}):
