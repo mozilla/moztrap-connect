@@ -1,6 +1,6 @@
 from setuptools import setup
 
-setup(name='moztrap-connect',
+setup(name='moztrap_connect',
       version='0.1',
       description='MozTrap API Library.',
       author='C. Dawson',
