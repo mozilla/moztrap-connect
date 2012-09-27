@@ -34,6 +34,11 @@ TODO::
 
     * return a results url for the run in moztrap
 
+Running the tests:
+-----------------------------
+Running the tests for this project requires the following py.test flags:
+    --test-mt-username
+    --test-mt-apikey
 
 
 
