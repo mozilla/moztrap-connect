@@ -2,11 +2,13 @@
 
 import pytest
 
-from mtconnect.connect import Connect, InvalidFilterParamsException, ProductVersionDoesNotExistException
-#from mock import Mock, patch
+from mtconnect.connect import Connect
+from mtconnect.connect import InvalidFilterParamsException
+from mtconnect.connect import ProductVersionDoesNotExistException
 
 
 class TestConnect:
+
 
     # constructor
     def test_connect_limits(self, testmoztrap):
@@ -21,6 +23,7 @@ class TestConnect:
         assert len(limited) == 3
         assert len(unlimited) > len(limited)
 
+
     # get_products
     def test_get_products_no_filter(self, testmoztrap):
         prods = testmoztrap.connect.get_products()
@@ -31,11 +34,13 @@ class TestConnect:
                 found = True
         assert found, "product Macaron not found in %s" % prods
 
+
     def test_get_products_filter_by_name(self, testmoztrap):
         prods = testmoztrap.connect.get_products(name="Macaron")
         print "products:\n%s" % prods
         assert len(prods) == 1
         assert prods[0]['id'] == '15'
+
 
     # get_productversions
     def test_get_productversions_by_version_id(self, testmoztrap):
@@ -43,6 +48,7 @@ class TestConnect:
         print "versions:\n%s" % vers
         assert len(vers) == 1
         assert vers[0]['version'] == "1", vers
+
 
     def test_get_productversions_by_product_name_only(self, testmoztrap):
         vers = testmoztrap.connect.get_productversions(product="Macaron")
@@ -53,21 +59,28 @@ class TestConnect:
                 found = True
         assert found, "product version 1 not found in %s" % vers
 
-    def test_get_productversions_by_product_name_and_version_name(self, testmoztrap):
-        vers = testmoztrap.connect.get_productversions(product="Macaron", version="1")
+
+    def test_get_productversions_by_product_name_and_version_name(self, 
+            testmoztrap):
+        vers = testmoztrap.connect.get_productversions(product="Macaron", 
+            version="1")
         print "versions:\n%s" % vers
         assert len(vers) == 1
         assert vers[0]['id'] == "33", vers
 
-    def test_get_productversions_by_version_name_only_throws_exception(self, testmoztrap):
-        try:
+
+    def test_get_productversions_by_version_name_only_throws_exception(self, 
+            testmoztrap):
+        with pytest.raises(InvalidFilterParamsException) as e:
             vers = testmoztrap.connect.get_productversions(version="1")
-        except InvalidFilterParamsException as e:
-            assert e.msg == "Either version_id or product is required."
+
+        assert "Either version_id or product is required." in e.exconly()
+
 
     # get_product_environments
     def test_get_product_environments_by_productversion_id(self, testmoztrap):
-        envs = testmoztrap.connect.get_product_environments(productversion_id="33")
+        envs = testmoztrap.connect.get_product_environments(
+            productversion_id="33")
         print "environments:\n%s" % envs
         found = False
         for env in envs:
@@ -77,6 +90,7 @@ class TestConnect:
 
         assert found, "OS X 10.5 was not found in %s" % envs
 
+
     # get_runs
     def test_get_runs_filter_by_id(self, testmoztrap):
         runs = testmoztrap.connect.get_runs(run_id="25")
@@ -84,29 +98,32 @@ class TestConnect:
         run_names = [r['name'] for r in runs]
         assert "Vanilla mousse" in run_names
 
+
     def test_get_runs_filter_by_just_name_raises_exception(self, testmoztrap):
-        e = None
-        try:
+        with pytest.raises(InvalidFilterParamsException) as e:
             runs = testmoztrap.connect.get_runs(name="Vanilla mousse")
-        except InvalidFilterParamsException as e:
-            pass
-        assert e.msg == "Either run_id or productversion_id or product and version are required."
 
-    def test_get_runs_filter_by_just_product_name_raises_exception(self, testmoztrap):
-        e = None
-        try:
-            runs = testmoztrap.connect.get_runs(product="Macaron")
-        except InvalidFilterParamsException as e:
-            pass
-        assert e.msg == "Either run_id or productversion_id or product and version are required."
+        assert "Either run_id or productversion_id or product "
+        "and version are required." in e.exconly()
 
-    def test_get_runs_filter_by_just_version_name_raises_exception(self, testmoztrap):
-        e = None
-        try:
+
+    def test_get_runs_filter_by_just_product_name_raises_exception(self, 
+            testmoztrap):
+        with pytest.raises(InvalidFilterParamsException) as e:
+           runs = testmoztrap.connect.get_runs(product="Macaron")
+
+        assert "Either run_id or productversion_id or product and "
+        "version are required." in e.exconly()
+
+
+    def test_get_runs_filter_by_just_version_name_raises_exception(self, 
+            testmoztrap):
+        with pytest.raises(InvalidFilterParamsException) as e:
             runs = testmoztrap.connect.get_runs(version="0.1a")
-        except InvalidFilterParamsException as e:
-            pass
-        assert e.msg == "Either run_id or productversion_id or product and version are required."
+
+        assert "Either run_id or productversion_id or product and "
+        "version are required." in e.exconly()
+
 
     def test_get_runs_filter_by_productversion_id(self, testmoztrap):
         runs = testmoztrap.connect.get_runs(productversion_id=31)
@@ -114,29 +131,38 @@ class TestConnect:
         run_names = [r['name'] for r in runs]
         assert "Vanilla mousse" in run_names
 
+
     def test_get_runs_filter_by_product_and_version(self, testmoztrap):
-        runs = testmoztrap.connect.get_runs(product="pytest_moztrap", version="0.1a", )
+        runs = testmoztrap.connect.get_runs(
+            product="pytest_moztrap", version="0.1a", )
         print "runs:\n%s" % runs
         run_names = [r['name'] for r in runs]
         assert "this_is_a_test" in run_names
 
+
     def test_get_runs_filter_by_product_and_version_and_name(self, testmoztrap):
-        runs = testmoztrap.connect.get_runs(product="pytest_moztrap", version="0.1a", name="this_is_a_test")
+        runs = testmoztrap.connect.get_runs(
+            product="pytest_moztrap", version="0.1a", name="this_is_a_test")
         print "runs:\n%s" % runs
         assert len(runs) == 1
         assert runs[0]['id'] == "47"
 
-    def test_get_runs_no_product_version_match_throws_exception(self, testmoztrap):
-        e = None
-        try:
-            runs = testmoztrap.connect.get_runs(product="nonexistant product", version="nonexistant version", name="nonexistant run")
-        except ProductVersionDoesNotExistException as e:
-            pass
-        assert e.msg == "No productversion found matching product=nonexistant product and version=nonexistant version."
+
+    def test_get_runs_no_product_version_match_throws_exception(self, 
+            testmoztrap):
+        with pytest.raises(ProductVersionDoesNotExistException) as e:
+            runs = testmoztrap.connect.get_runs(
+                product="nonexistant product", 
+                version="nonexistant version", 
+                name="nonexistant run")
+        assert "No productversion found matching product=nonexistant product "
+        "and version=nonexistant version." in str(e.exconly())
+
 
     # get_run_environments
     def test_get_run_environments_by_run_id(self, testmoztrap):
-        runs = testmoztrap.connect.get_runs(product="Macaron", version="1", name="Vanilla mousse")
+        runs = testmoztrap.connect.get_runs(
+            product="Macaron", version="1", name="Vanilla mousse")
         print "runs:\n%s" % runs
         run_id = runs[0]['id']
         run_envs = testmoztrap.connect.get_run_environments(run_id)
@@ -148,8 +174,10 @@ class TestConnect:
                     found = True
         assert True, "OS X 10.5 not found in %s" % run_envs
 
+
     def test_get_run_environments_by_run_id_and_name(self, testmoztrap):
-        runs = testmoztrap.connect.get_runs(product="Macaron", version="1", name="Vanilla mousse")
+        runs = testmoztrap.connect.get_runs(
+            product="Macaron", version="1", name="Vanilla mousse")
         print "runs:\n%s" % runs
         run_id = runs[0]['id']
         run_envs = testmoztrap.connect.get_run_environments(run_id, "OS X 10.5")
@@ -157,9 +185,11 @@ class TestConnect:
         assert len(run_envs) == 1
         assert run_envs[0]['id'] == "108"
 
+
     # get_run_cases
     def test_get_run_cases(self, testmoztrap):
-        runs = testmoztrap.connect.get_runs(product="Macaron", version="1", name="Vanilla mousse")
+        runs = testmoztrap.connect.get_runs(
+            product="Macaron", version="1", name="Vanilla mousse")
         print "runs:\n%s" % runs
         run_id = runs[0]['id']
         run_envs = testmoztrap.connect.get_run_environments(run_id, "OS X 10.5")
@@ -169,6 +199,7 @@ class TestConnect:
         cases = testmoztrap.connect.get_run_cases(run_id, env_id)
         print "cases:\n%s" % cases
         assert cases[0]['caseversion']['case']['id'] == "278"
+
 
     # test other stuff
     @pytest.mark.xfail(reason="not implemented yet")

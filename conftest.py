@@ -32,7 +32,8 @@ def pytest_addoption(parser):
                      action='store',
                      dest='test_moztrap_apikey',
                      metavar='str',
-                     help='Ask your MozTrap admin to generate an API key in the Core / ApiKeys table and provide it to you.')
+                     help="Ask your MozTrap admin to generate an API key "
+                     "in the Core / ApiKeys table and provide it to you.")
 
 
 def pytest_sessionstart(session):
@@ -41,12 +42,14 @@ def pytest_sessionstart(session):
     if not config.option.test_moztrap_apikey and \
            config.option.test_moztrap_username:
 
-           raise pytest.UsageError("--test-mt-username and --test-mt-apikey are required.")
+        raise pytest.UsageError("--test-mt-username and --test-mt-apikey "
+        "are required.")
+
 
 def pytest_runtest_setup(item):
-    TestSetup.username        = item.config.option.test_moztrap_username
-    TestSetup.apikey          = item.config.option.test_moztrap_apikey
-    TestSetup.url             = item.config.option.test_moztrap_url
+    TestSetup.username = item.config.option.test_moztrap_username
+    TestSetup.apikey = item.config.option.test_moztrap_apikey
+    TestSetup.url = item.config.option.test_moztrap_url
 
     TestSetup.connect = Connect(
         "https",
