@@ -19,6 +19,16 @@ admin, then use the /admin panel, and create an API key in the Core / ApiKeys
 table for the user you want.
 
 
+Installation
+------------
+This package can be installed using
+    $ python setup.py install
+or
+    $ python setup.py develop
+
+It is also pip installable by putting the following line in your requirements.txt file.
+    git+https://github.com/camd/moztrap-connect.git
+
 Notes:
 ~~~~~~
 on cmd line specify:
@@ -34,6 +44,11 @@ TODO::
 
     * return a results url for the run in moztrap
 
+Running the tests:
+-----------------------------
+Running the tests for this project requires the following py.test flags:
+    --test-mt-username
+    --test-mt-apikey
 
 
 

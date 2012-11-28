@@ -4,6 +4,7 @@ from mtconnect.connect import Connect, TestResults
 import json
 import datetime
 
+
 def jstr(obj):
     return json.dumps(obj, sort_keys=True, indent=4)
 
@@ -44,6 +45,7 @@ post those results
 
 """
 
+
 def submit_results_ui_way():
 
     connect = Connect("http", "localhost:8000", "camd", "abc123", DEBUG=True)
@@ -53,13 +55,13 @@ def submit_results_ui_way():
     print jstr(runs)
 
     # here pick the run you want
-    run_id=runs[0]["id"]
+    run_id = runs[0]["id"]
 
     envs = connect.get_run_environments(run_id=run_id)
     print jstr(envs)
 
     # here pick the env you want
-    env_id=envs[22]["id"]
+    env_id = envs[22]["id"]
 
     tests = connect.get_run_cases(run_id=run_id, environment_id=env_id)
     print jstr(tests)
