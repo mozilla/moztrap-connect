@@ -11,26 +11,29 @@ def jstr(obj):
 def getters():
 
     connect = Connect("http", "localhost:8000", "camd", "abc123", DEBUG=True)
+#    connect = Connect("http", "moztrap.allizom.org", "camd", "07cb6df4-3879-45f1-9764-224775fed1e6", DEBUG=True)
 
 
-    products = connect.get_products()
-    print jstr(products)
+#    products = connect.get_products()
+#    print jstr(products)
+#
+#    products = connect.get_products(name="MozTrap")
+#    print jstr(products)
+#
+#    runs = connect.get_runs(productversion_id=7)
+#    print jstr(runs)
+#
+#    env = connect.get_run_environments(run_id=1)
+#    print jstr(env)
 
-    products = connect.get_products(name="MozTrap")
-    print jstr(products)
+#    penv = connect.get_product_environments(productversion_id=7)
+#    print penv
 
-    runs = connect.get_runs(productversion_id=7)
-    print jstr(runs)
-
-    env = connect.get_run_environments(run_id=1)
-    print jstr(env)
-
-    penv = connect.get_product_environments(productversion_id=7)
-
-    pcases = connect.get_product_cases(productversion_id=7, environment_id=62)
-
-    rcases = connect.get_run_cases(run_id=1, environment_id=22)
-
+#    pcases = connect.get_product_cases(productversion_id=7, environment_id=62)
+#
+#    rcases = connect.get_run_cases(run_id=1, environment_id=22)
+    rcases = connect.get_run_cases(run_id=47, environment_id=32)
+    print jstr(rcases)
 
 """
 
@@ -130,7 +133,9 @@ def submit_results_auto_way():
         results.addfail(
             case_id=caseversion["case"]["id"],
             environment_id=lin_id,
-            comment="dang thing..."
+            comment="dang thing...",
+            bug="http://www.deathvalleydogs.com",
+            stepnumber=1,
             )
 
     res = connect.submit_run(
@@ -139,9 +144,9 @@ def submit_results_auto_way():
         productversion_id=pv_id,
         testresults=results,
         )
-    print(res)
+    print(res.text)
 
 
-getters()
-submit_results_ui_way()
+#getters()
+#submit_results_ui_way()
 submit_results_auto_way()
