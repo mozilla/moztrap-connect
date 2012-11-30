@@ -4,6 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 import pytest
+from datetime import datetime
 
 from mtconnect.connect import Connect
 
@@ -56,7 +57,54 @@ def pytest_runtest_setup(item):
         TestSetup.url,
         TestSetup.username,
         TestSetup.apikey,
+        DEBUG=True,
         )
+
+@pytest.fixture()
+def product_fixture(request, testmoztrap):
+    from mtconnect.fixtures import ProductFixture
+    return ProductFixture.list(testmoztrap.connect, name="Macaron")[0]
+
+    # dt_string = datetime.utcnow().isoformat()
+
+    # fields = {
+    #     'name': 'TestProduct_fixture_%s' % dt_string,
+    #     'description': 'TestProduct_fixture_ %s' % dt_string,
+        # 'productversions': {
+        #     'version': 'test_create_product_%s' % dt_string,
+        #     'profile': '1',
+        # }
+    # }
+    # product_fixture = ProductFixture(testmoztrap.connect, fields)
+
+    # def teardown():
+    #     product_fixture.delete()
+
+    # request.addfinalizer(teardown)
+
+    # return product_fixture
+
+@pytest.fixture()
+def suite_fixture(request, testmoztrap, product_fixture):
+    from mtconnect.fixtures import SuiteFixture
+    # return SuiteFixture.list(testmoztrap.connect, name="Macaron")[0]
+
+    dt_string = datetime.utcnow().isoformat()
+
+    fields = {
+        'name': 'TestSuite_fixture_%s' % dt_string,
+        'status': 'active',
+        'product': product_fixture.resource_uri,
+        'description': 'TestSuite_fixture %s' % dt_string,
+    }
+    suite_fixture = SuiteFixture(testmoztrap.connect, fields)
+
+    def teardown():
+        suite_fixture.delete()
+
+    request.addfinalizer(teardown)
+
+    return suite_fixture
 
 
 class TestSetup:

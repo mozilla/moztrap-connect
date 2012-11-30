@@ -1,3 +1,4 @@
+import sys
 import requests
 from urllib import urlencode
 from json import loads, dumps
@@ -53,6 +54,9 @@ class Connect:
 
 
     def do_get(self, resource, id=None, params={}):
+        if self.DEBUG:
+            sys.stdout.write("GET ")
+
         url = self.get_url(self.get_uri(resource, id), params)
 
         try:
@@ -64,9 +68,13 @@ class Connect:
 
 
     def do_patch(self, resource, data_obj, params={}):
+        if self.DEBUG:
+            sys.stdout.write("PATCH ")
+
         url = self.get_url(self.get_uri(resource), params)
 
         if self.DEBUG:
+            sys.stdout.write("data = ")
             print(dumps(data_obj, sort_keys=True, indent=4))
 
         try:
@@ -82,10 +90,35 @@ class Connect:
             return res
 
 
+    def do_put(self, resource, id, params={}):
+        if self.DEBUG:
+            sys.stdout.write("PUT ")
+
+        url = self.get_url(self.get_uri(resource, id))
+
+        if self.DEBUG:
+            sys.stdout.write("params = ")
+            print(dumps(params, sort_keys=True, indent=4))
+
+        try:
+            res = requests.put(
+                url,
+                data=dumps(params),
+                headers = {"content-type": "application/json"},
+                )
+            res.raise_for_status()
+            return res
+        except:
+            print res.text
+
     def do_post(self, resource, data_obj, params={}):
+        if self.DEBUG:
+            sys.stdout.write("POST ")
+
         url = self.get_url(self.get_uri(resource), params)
 
         if self.DEBUG:
+            sys.stdout.write("data = ")
             print(dumps(data_obj, sort_keys=True, indent=4))
 
         try:
@@ -99,6 +132,18 @@ class Connect:
         except:
             print res.text
 
+    def do_delete(self, resource, id):
+        if self.DEBUG:
+            sys.stdout.write("DELETE ")
+
+        url = self.get_url(self.get_uri(resource, id))
+
+        try:
+            res = requests.delete(url)
+            res.raise_for_status()
+            return res
+        except:
+            print res
 
     #######################################
     # connector APIs for creating a new run
