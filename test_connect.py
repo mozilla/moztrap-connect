@@ -10,12 +10,6 @@ from mtconnect.connect import ProductVersionDoesNotExistException
 
 class TestConnect:
 
-    def test_get_runs_filter_by_product_name(self):
-        runs = self.connect.get_runs(product="Macaron")
-        print "runs:\n%s" % runs
-        run_names = [r['name'] for r in runs]
-        assert "Vanilla mousse" in run_names
-
     # constructor
     def test_connect_limits(self, testmoztrap):
         unlimited = testmoztrap.connect.get_products()
@@ -132,10 +126,10 @@ class TestConnect:
 
 
     def test_get_runs_filter_by_productversion_id(self, testmoztrap):
-        runs = testmoztrap.connect.get_runs(productversion_id=31)
+        runs = testmoztrap.connect.get_runs(productversion=51)
         print "runs:\n%s" % runs
         run_names = [r['name'] for r in runs]
-        assert "Vanilla mousse" in run_names
+        assert "this_is_a_test" in run_names
 
 
     def test_get_runs_filter_by_product_and_version(self, testmoztrap):
