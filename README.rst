@@ -50,7 +50,19 @@ Running the tests for this project requires the following py.test flags:
     --test-mt-username
     --test-mt-apikey
 
+Troubleshooting:
+----------------
+if you get
 
+            try:
+                res = requests.get(url)
+                res.raise_for_status()
+                return res
+            except:
+    >           print res.text
+    E           UnboundLocalError: local variable 'res' referenced before assignment
+
+then fix the protocol at conftest.py line 56
 
 
 
