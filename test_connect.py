@@ -125,10 +125,10 @@ class TestConnect:
 
     @pytest.mark.xfail(reason="productversion_id -> productversion_name")
     def test_get_runs_filter_by_productversion_id(self, testmoztrap):
-        runs = testmoztrap.connect.get_runs(productversion_id=31)
+        runs = testmoztrap.connect.get_runs(productversion=51)
         print "runs:\n%s" % runs
         run_names = [r['name'] for r in runs]
-        assert "Vanilla mousse" in run_names
+        assert "this_is_a_test" in run_names
 
 
     def test_get_runs_filter_by_product_and_version(self, testmoztrap):

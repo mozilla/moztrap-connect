@@ -15,7 +15,7 @@ class Connect:
     """
 
 
-    def __init__(self, protocol, host, username, api_key, limit=0, DEBUG=False):
+    def __init__(self, protocol, host, username, api_key, limit=100, DEBUG=False):
         self.DEBUG = DEBUG
         self.protocol = protocol
         self.host = host
@@ -256,7 +256,7 @@ class Connect:
     def get_runs(self, 
         product=None, 
         version=None, 
-        productversion_id=None, 
+        productversion=None, 
         name=None, 
         run_id=None):
         """
@@ -265,7 +265,7 @@ class Connect:
         ::Args::
         product - Filter by product name
         version - Filter by product version name
-        productversion_id - Filter by product version id
+        productversion - Filter by product version id
         name - Filter by run name
         run_id - Filter by run id
 
@@ -276,7 +276,7 @@ class Connect:
         """
         r = None
         if not run_id:
-            if not productversion_id:
+            if not productversion:
                 if product and version:
                     productversions = self.get_productversions(
                         product=product, 
@@ -285,14 +285,14 @@ class Connect:
                         raise ProductVersionDoesNotExistException(
                             "No productversion found matching "
                         "product=%s and version=%s." % (product, version))
-                    productversion_id = productversions[0]['id']
+                    productversion = productversions[0]['id']
                 else:
                     raise InvalidFilterParamsException(
-                        "Either run_id or productversion_id or "
+                        "Either run_id or productversion or "
                     "product and version are required.")
 
             r = self.do_get("run", 
-                params={'productversion_id': productversion_id})
+                params={'productversion': productversion})
         else:  # run_id is unique to filter by
             r = self.do_get("run")
 
