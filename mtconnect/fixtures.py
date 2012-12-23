@@ -1,4 +1,5 @@
 from json import loads
+from datetime import datetime
 import requests
 
 class _Fixture(object):
@@ -34,6 +35,10 @@ class _Fixture(object):
             self.id = r.headers['location'].split('/')[-2]
             self.get()
 
+    def __repr__(self):
+        '''Instance method. String representation of fixture.'''
+        return "%s with attributes %s" % (self.__class__.__name__, str(self.__dict__))
+
     def get(self):
         '''Instance method. Refresh the object with data from the server.'''
         r = self.connect.do_get(self._uri, self.id)
@@ -51,9 +56,12 @@ class _Fixture(object):
         self.connect.do_put(self._uri, self.id, fields)
         self.__dict__.update(fields)
 
-    def delete(self):
-        '''Instance method. Use the API to delete the object.'''
-        self.connect.do_delete(self._uri, self.id)
+    def delete(self, permanent=False):
+        '''Instance method. Use the API to delete the object.
+        ::Args::
+        permanent - True/False, defaults to False
+        '''
+        self.connect.do_delete(self._uri, self.id, params={"permanent": permanent})
 
     @classmethod
     def list(cls, connect, **filters):
@@ -87,3 +95,10 @@ class SuiteFixture(_Fixture):
     _edit_args = ['description', 'status', 'name', 'product']
     _create_args = _edit_args
     _filter_args = ['name', 'product']
+
+
+class ProductVersionFixture(_Fixture):
+    _uri = 'productversion'
+    _edit_args = ['version', 'codename']
+    _create_args = _edit_args + ['product']
+    _filter_args = ['version', 'product']

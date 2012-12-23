@@ -132,11 +132,11 @@ class Connect:
         except:
             print res.text
 
-    def do_delete(self, resource, id):
+    def do_delete(self, resource, id, params=None):
         if self.DEBUG:
             sys.stdout.write("DELETE ")
 
-        url = self.get_url(self.get_uri(resource, id))
+        url = self.get_url(self.get_uri(resource, id), params=params)
 
         try:
             res = requests.delete(url)

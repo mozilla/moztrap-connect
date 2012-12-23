@@ -1,12 +1,12 @@
 #!python
 
 import pytest
-from datetime import datetime
 
 from mtconnect.fixtures import SuiteFixture
+from base import Base
 
 
-class TestSuite:
+class TestSuite(Base):
 
     def test_list_suites(self, testmoztrap, suite_fixture, product_fixture):
         suites = SuiteFixture.list(testmoztrap.connect)
@@ -21,7 +21,7 @@ class TestSuite:
         assert found, "suite %s not found" % suite_fixture.name
 
     def test_create_delete_suite(self, testmoztrap, product_fixture):
-        dt_string = datetime.utcnow().isoformat()
+        dt_string = self.timestamp
 
         fields = {
             'name': 'test_create_delete_suite_%s' % dt_string,
@@ -43,7 +43,7 @@ class TestSuite:
         assert len(suites) == 0
 
     def test_edit_get_suite(self, testmoztrap, suite_fixture):
-        dt_string = datetime.utcnow().isoformat()
+        dt_string = self.timestamp
         fields = { 
             'description': 'test_edit_get_suite %s' % dt_string,
             'status': 'draft',

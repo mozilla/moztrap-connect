@@ -35,6 +35,11 @@ def pytest_addoption(parser):
                      metavar='str',
                      help="Ask your MozTrap admin to generate an API key "
                      "in the Core / ApiKeys table and provide it to you.")
+    group._addoption('--test-mt-protocol',
+                     action='store',
+                     dest='test_moztrap_protocol',
+                     default='http',
+                     help='http/https defaults to http')
 
 
 def pytest_sessionstart(session):
@@ -51,9 +56,10 @@ def pytest_runtest_setup(item):
     TestSetup.username = item.config.option.test_moztrap_username
     TestSetup.apikey = item.config.option.test_moztrap_apikey
     TestSetup.url = item.config.option.test_moztrap_url
+    TestSetup.protocol = item.config.option.test_moztrap_protocol
 
     TestSetup.connect = Connect(
-        "https",
+        TestSetup.protocol,
         TestSetup.url,
         TestSetup.username,
         TestSetup.apikey,
@@ -63,31 +69,28 @@ def pytest_runtest_setup(item):
 @pytest.fixture()
 def product_fixture(request, testmoztrap):
     from mtconnect.fixtures import ProductFixture
-    return ProductFixture.list(testmoztrap.connect, name="Macaron")[0]
 
-    # dt_string = datetime.utcnow().isoformat()
+    dt_string = datetime.utcnow().isoformat()
 
-    # fields = {
-    #     'name': 'TestProduct_fixture_%s' % dt_string,
-    #     'description': 'TestProduct_fixture_ %s' % dt_string,
-        # 'productversions': {
-        #     'version': 'test_create_product_%s' % dt_string,
-        #     'profile': '1',
-        # }
-    # }
-    # product_fixture = ProductFixture(testmoztrap.connect, fields)
+    fields = {
+        'name': 'TestProduct_fixture_%s' % dt_string,
+        'description': 'TestProduct_fixture_ %s' % dt_string,
+        'productversions': [{
+            'version': 'test_create_product_%s' % dt_string,
+        }]
+    }
+    product_fixture = ProductFixture(testmoztrap.connect, fields)
 
-    # def teardown():
-    #     product_fixture.delete()
+    def teardown():
+        product_fixture.delete()
 
-    # request.addfinalizer(teardown)
+    request.addfinalizer(teardown)
 
-    # return product_fixture
+    return product_fixture
 
 @pytest.fixture()
 def suite_fixture(request, testmoztrap, product_fixture):
     from mtconnect.fixtures import SuiteFixture
-    # return SuiteFixture.list(testmoztrap.connect, name="Macaron")[0]
 
     dt_string = datetime.utcnow().isoformat()
 
