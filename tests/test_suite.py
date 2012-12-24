@@ -23,12 +23,7 @@ class TestSuite(Base):
     def test_create_delete_suite(self, testmoztrap, product_fixture):
         dt_string = self.timestamp
 
-        fields = {
-            'name': 'test_create_delete_suite_%s' % dt_string,
-            'description': 'test_create_delete_suite %s' % dt_string,
-            'product': product_fixture.resource_uri,
-            'status': 'active',
-        }
+        fields = SuiteFixture.fixture_data(product_fixture)
         suite = SuiteFixture(testmoztrap.connect, fields)
         assert suite.name == fields['name']
         assert suite.description == fields['description']

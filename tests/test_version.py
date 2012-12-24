@@ -11,20 +11,16 @@ class TestVersion(Base):
     def test_create_delete_productversion(self, testmoztrap, product_fixture):
         dt_string = self.timestamp
 
-        # before create
+        # list should have 1
         vers = ProductVersionFixture.list(testmoztrap.connect, 
             product=product_fixture.id)
         assert len(vers) == 1
 
         # do create
-        fields = {
-            'version': 'test_create_product_version_%s' % dt_string,
-            'codename': 'test_create_product_version_%s' % dt_string,
-            'product': product_fixture.resource_uri,
-            }
-
+        fields = ProductVersionFixture.fixture_data(product_fixture)
         version = ProductVersionFixture(testmoztrap.connect, fields)
 
+        # list should have 2
         vers = ProductVersionFixture.list(testmoztrap.connect, 
             product=product_fixture.id)
         assert len(vers) == 2
@@ -32,6 +28,7 @@ class TestVersion(Base):
         # do delete
         version.delete()
 
+        # list should have one
         vers = ProductVersionFixture.list(testmoztrap.connect,
             product=product_fixture.id)
         assert len(vers) == 1

@@ -65,7 +65,8 @@ class _Fixture(object):
 
     @classmethod
     def list(cls, connect, **filters):
-        '''Class method. Query the API for existing object.
+        '''Class method. Query the API for existing objects.
+        Will follow pagination if necessary.
 
         ::Args::
         connect - an mtconnect.connect.Connect object.
@@ -78,9 +79,29 @@ class _Fixture(object):
         cls._verify_args(filters, cls._filter_args, 'find')
 
         r = connect.do_get(cls._uri, params=filters)
-        objects = loads(r.text)["objects"]
+        r = loads(r.text)
+        objects = r["objects"]
+        next = r["meta"]["next"]
+        if next:
+            import requests
+        while next:
+            res = requests.get("%s/%s" % (connect.url_root, next))
+            res.raise_for_status()
+            r = loads(res.text)
+            objects.extend(r["objects"])
+            next = r["meta"]["next"]
 
         return [cls(connect, _data=obj) for obj in objects]
+
+    @classmethod
+    def fixture_data(self):
+        """Provides time-stamped (ie, unique) field data for creating new objects.
+        Must be implemented by child Fixtures.
+
+        Example usage:
+            ProductFixture(testmoztrap.connect, ProductFixture.fixture_data())
+        """
+        raise NotImplementedError
 
 
 class ProductFixture(_Fixture):
@@ -89,6 +110,18 @@ class ProductFixture(_Fixture):
     _create_args = _edit_args + ['name', 'productversions']
     _filter_args = ['name']
 
+    @classmethod
+    def fixture_data(self):
+        dt_string = datetime.utcnow().isoformat()
+
+        return {
+            'name': 'Product Fixture %s' % dt_string,
+            'description': 'Product Description %s' % dt_string,
+            'productversions': [{
+                'version': 'Product Fixture %s' % dt_string,
+            }]
+        }
+
 
 class SuiteFixture(_Fixture):
     _uri = 'suite'
@@ -96,9 +129,30 @@ class SuiteFixture(_Fixture):
     _create_args = _edit_args
     _filter_args = ['name', 'product']
 
+    @classmethod
+    def fixture_data(self, product):
+        dt_string = datetime.utcnow().isoformat()
+
+        return {
+            'name': 'Suite Fixture %s' % dt_string,
+            'description': 'Suite Description %s' % dt_string,
+            'product': product.resource_uri,
+            'status': 'active',
+        }
 
 class ProductVersionFixture(_Fixture):
     _uri = 'productversion'
     _edit_args = ['version', 'codename']
     _create_args = _edit_args + ['product']
     _filter_args = ['version', 'product']
+
+    @classmethod
+    def fixture_data(self, product):
+        dt_string = datetime.utcnow().isoformat()
+
+        return {
+            'version': 'Product Version Fixture %s' % dt_string,
+            'codename': 'Product Version Codename %s' % dt_string,
+            'product': product.resource_uri,
+            }
+

@@ -3,6 +3,7 @@
 import pytest
 
 from mtconnect.fixtures import ProductFixture
+from mtconnect.connect import Connect
 from base import Base
 
 
@@ -11,13 +12,7 @@ class TestProduct(Base):
     def test_create_delete_product(self, testmoztrap):
         dt_string = self.timestamp
 
-        fields = {
-            'name': 'test_create_product_%s' % dt_string,
-            'description': 'test_create_product %s' % dt_string,
-            'productversions': [{
-                'version': 'test_create_product_%s' % dt_string,
-            }]
-        }
+        fields = ProductFixture.fixture_data()
         product = ProductFixture(testmoztrap.connect, fields)
         prods = ProductFixture.list(testmoztrap.connect, name=product.name)
         assert len(prods) == 1
@@ -52,3 +47,20 @@ class TestProduct(Base):
     def test_product_not_found_by_name(self, testmoztrap):
         prod_list = ProductFixture.list(testmoztrap.connect, name="this product does not exist")
         assert prod_list == []
+
+    def test_list_pagination(self, testmoztrap):
+        # create 5 products 
+        for i in range(5):
+            ProductFixture(testmoztrap.connect, ProductFixture.fixture_data())
+
+        # use connect with limit=1
+        connect = Connect(
+            testmoztrap.protocol,
+            testmoztrap.url,
+            testmoztrap.username,
+            testmoztrap.apikey,
+            limit=1,
+            )
+        # verify results has five products
+        products = ProductFixture.list(connect)
+        assert len(products) >= 5
