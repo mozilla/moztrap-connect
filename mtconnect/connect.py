@@ -59,8 +59,8 @@ class Connect:
             res = requests.get(url)
             res.raise_for_status()
             return res
-        except:
-            print res.text
+        except Exception as e:
+            print e
 
 
     def do_patch(self, resource, data_obj, params={}):
@@ -93,11 +93,12 @@ class Connect:
                 url,
                 data=dumps(data_obj),
                 headers = {"content-type": "application/json"},
+                verify=False,
                 )
             res.raise_for_status()
             return res
-        except:
-            print res.text
+        except Exception as e:
+            print e
 
 
     #######################################
@@ -130,7 +131,7 @@ class Connect:
         version_id - Filter by Version id.
 
         ::Raises::
-        InvalidFilterParamsException if neither version_id nor product are 
+        InvalidFilterParamsException if neither version_id nor product are
         provided.
 
         """
@@ -208,11 +209,11 @@ class Connect:
     ####################################
 
 
-    def get_runs(self, 
-        product=None, 
-        version=None, 
-        productversion=None, 
-        name=None, 
+    def get_runs(self,
+        product=None,
+        version=None,
+        productversion=None,
+        name=None,
         run_id=None):
         """
         Return a list of test runs.
@@ -225,7 +226,7 @@ class Connect:
         run_id - Filter by run id
 
         ::Raises::
-        InvalidFilterParamsException if neither run_id nor productversion_id 
+        InvalidFilterParamsException if neither run_id nor productversion_id
         nor product and version are provided.
 
         """
@@ -234,7 +235,7 @@ class Connect:
             if not productversion:
                 if product and version:
                     productversions = self.get_productversions(
-                        product=product, 
+                        product=product,
                         version=version)
                     if len(productversions) < 1:
                         raise ProductVersionDoesNotExistException(
@@ -246,7 +247,7 @@ class Connect:
                         "Either run_id or productversion or "
                     "product and version are required.")
 
-            r = self.do_get("run", 
+            r = self.do_get("run",
                 params={'productversion': productversion})
         else:  # run_id is unique to filter by
             r = self.do_get("run")
