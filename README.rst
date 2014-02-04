@@ -50,19 +50,9 @@ Running the tests for this project requires the following py.test flags:
     --test-mt-username
     --test-mt-apikey
 
-Troubleshooting:
-----------------
-if you get
-
-            try:
-                res = requests.get(url)
-                res.raise_for_status()
-                return res
-            except:
-    >           print res.text
+If you are running against a real moztrap instance (moztrap.mozilla.org or moztrap.allizom.org) you will also need 
+    --test-mt-protocol=https. 
+If you have the wrong protocol, it will often result in 
     E           UnboundLocalError: local variable 'res' referenced before assignment
 
-then fix the protocol at conftest.py line 56
-
-
-
+There are currently two sets of tests, one for the connector (test_connect.py) and one for the fixtures (the tests/ directory). The connector tests must be run against --test-mt-url=moztrap.allizom.org --test-mt-protocol=https. The fixture tests may be run against any moztrap server, including localhost with --test-mt-protocol=http.
